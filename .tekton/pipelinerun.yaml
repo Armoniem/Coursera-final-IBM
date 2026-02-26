@@ -1,0 +1,16 @@
+apiVersion: tekton.dev/v1
+kind: PipelineRun
+metadata:
+  generateName: coursera-cicd-pipelinerun-
+spec:
+  pipelineRef:
+    name: coursera-cicd-pipeline
+  params:
+    - name: repo-url
+      value: https://github.com/Armoniem/coursera-final-project.git
+    - name: image-name
+      value: image-registry.openshift-image-registry.svc:5000/sn-labs-armoniem0001/coursera-app:latest
+  workspaces:
+    - name: shared-workspace
+      persistentVolumeClaim:
+        claimName: oc-pipelines-console-pvc

@@ -1,0 +1,114 @@
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: cleanup-workspace
+spec:
+  workspaces:
+    - name: shared-workspace
+  steps:
+    - name: cleanup
+      image: alpine:3.19
+      script: |
+        #!/bin/sh
+        echo "Cleaning up workspace..."
+        rm -rf $(workspaces.shared-workspace.path)/.venv
+        rm -rf $(workspaces.shared-workspace.path)/**/__pycache__
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: run-tests
+spec:
+  workspaces:
+    - name: shared-workspace
+  steps:
+    - name: run-nose-tests
+      image: python:3.9-slim
+      workingDir: $(workspaces.shared-workspace.path)
+      script: |
+        #!/usr/bin/env bash
+        set -e
+        python -m pip install --upgrade pip
+        pip install nose
+        nosetests
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: flake8-lint
+spec:
+  workspaces:
+    - name: shared-workspace
+  steps:
+    - name: lint
+      image: python:3.11-slim
+      workingDir: $(workspaces.shared-workspace.path)
+      script: |
+        #!/usr/bin/env bash
+        set -e
+        echo "Installing flake8..."
+        python -m pip install --upgrade pip
+        pip install flake8
+        echo "Running flake8 linting..."
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: buildah-build
+spec:
+  params:
+    - name: IMAGE
+      description: Reference of the image to build
+      type: string
+  workspaces:
+    - name: shared-workspace
+  steps:
+    - name: debug-workspace
+      image: alpine:latest
+      script: |
+        #!/bin/sh
+        echo "=== Workspace Path Variable ==="
+        echo "$(workspaces.shared-workspace.path)"
+
+        echo -e "\n=== Workspace Contents ===" 
+        ls -laR $(workspaces.shared-workspace.path)
+
+        echo -e "\n=== Searching for Dockerfile ===" 
+        find /workspace -name "Dockerfile" -type f 2>/dev/null || echo "No Dockerfile found anywhere in /workspace"
+
+        echo -e "\n=== All /workspace contents ==="
+        ls -la /workspace/
+    - name: build-and-push
+      image: gcr.io/kaniko-project/executor:latest
+      env:
+        - name: DOCKER_CONFIG
+          value: /tekton/home/.docker
+      command:
+        - /kaniko/executor
+      args:
+        - --dockerfile=$(workspaces.shared-workspace.path)/Dockerfile
+        - --context=dir://$(workspaces.shared-workspace.path)
+        - --destination=$(params.IMAGE)
+        - --no-push
+        - --verbosity=info
+---
+apiVersion: tekton.dev/v1beta1
+kind: Task
+metadata:
+  name: deploy
+spec:
+  workspaces:
+    - name: shared-workspace
+  steps:
+    - name: apply-manifests
+      image: quay.io/openshift/origin-cli:latest
+      workingDir: $(workspaces.shared-workspace.path)
+      script: |
+        #!/usr/bin/env bash
+        set -e
+        echo "Deploying application to OpenShift..."
+        oc apply -f k8s/deployment.yaml
+        echo "Deployment complete!"
+        oc get all -l app=coursera-app
