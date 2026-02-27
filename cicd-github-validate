@@ -5,7 +5,7 @@ Delta compression using up to 10 threads
 Compressing objects: 100% (3/3), done.
 Writing objects: 100% (4/4), 675 bytes | 675.00 KiB/s, done.
 Total 4 (delta 0), reused 0 (delta 0), pack-reused 0 (from 0)
-To https://github.com/tekletsadik19/coursera-final-project.git
+To https://github.com/Armoniem/coursera-final-project.git
  * [new branch]      main -> main
 branch 'main' set up to track 'origin/main'.
 

@@ -32,7 +32,7 @@ Before running this pipeline, ensure you have:
 - ✅ Access to OpenShift Skills Network Lab environment
 - ✅ Tekton Pipelines installed on your OpenShift cluster
 - ✅ Logged into OpenShift via CLI (`oc login`)
-- ✅ Created a project/namespace (e.g., `sn-labs-tekletsadika`)
+- ✅ Created a project/namespace (e.g., `sn-labs-<your-username>`)
 - ✅ Proper RBAC permissions to create Tekton resources
 
 ## Deployment Instructions
@@ -44,7 +44,7 @@ Before running this pipeline, ensure you have:
 oc project
 
 # If needed, switch to your project
-oc project sn-labs-tekletsadika
+oc project sn-labs-<your-username>
 ```
 
 ### Step 2: Apply Tekton Tasks
@@ -137,15 +137,16 @@ The pipeline accepts the following parameters (defined in `pipelinerun.yaml`):
 
 | Parameter | Default Value | Description |
 |-----------|---------------|-------------|
-| `repo-url` | `https://github.com/tekletsadik19/coursera-final-project.git` | Git repository URL |
-| `image-name` | `image-registry.openshift-image-registry.svc:5000/sn-labs-tekletsadika/coursera-app:latest` | Container image reference |
+| `repo-url` | `https://github.com/<your-username>/coursera-final-project.git` | Git repository URL |
+| `image-name` | `image-registry.openshift-image-registry.svc:5000/sn-labs-<your-namespace>/coursera-app:latest` | Container image reference |
 
 ## Workspace Configuration
 
 The pipeline uses a shared workspace across all tasks with a PersistentVolumeClaim:
+- **Name:** `oc-pipelines-console-pvc` (create with `oc apply -f .tekton/workspace-pvc.yaml` before running)
+- **Storage Class:** skills-network-learner
 - **Size:** 1Gi
 - **Access Mode:** ReadWriteOnce
-- **Lifecycle:** Created automatically per PipelineRun
 
 ## Task Details
 
@@ -195,7 +196,7 @@ tkn hub install task git-clone
 
 **Solution:** Grant service account permissions:
 ```bash
-oc adm policy add-role-to-user edit system:serviceaccount:sn-labs-tekletsadika:pipeline
+oc adm policy add-role-to-user edit system:serviceaccount:sn-labs-<your-namespace>:pipeline
 ```
 
 ### Image Push Fails
@@ -216,8 +217,8 @@ oc create -f .tekton/pipelinerun.yaml
 
 # Or use Tekton CLI
 tkn pipeline start coursera-cicd-pipeline \
-  --param repo-url=https://github.com/tekletsadik19/coursera-final-project.git \
-  --param image-name=image-registry.openshift-image-registry.svc:5000/sn-labs-tekletsadika/coursera-app:latest \
+  --param repo-url=https://github.com/<your-username>/coursera-final-project.git \
+  --param image-name=image-registry.openshift-image-registry.svc:5000/sn-labs-<your-namespace>/coursera-app:latest \
   --workspace name=shared-workspace,volumeClaimTemplateFile=- \
   --showlog
 ```

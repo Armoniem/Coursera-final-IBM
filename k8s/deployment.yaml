@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: coursera-app
-        image: image-registry.openshift-image-registry.svc:5000/sn-labs-tekletsadika/coursera-app:latest
+        image: image-registry.openshift-image-registry.svc:5000/sn-labs-armoniem0001/coursera-app:latest
         ports:
         - containerPort: 8080
 ---
